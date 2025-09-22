@@ -1,0 +1,128 @@
+{% extends "forum/base.html" %}
+
+{% block title %}{{ category.name }} - Forum{% endblock %}
+
+{% block breadcrumb %}
+<a href="/forum" class="breadcrumb-item">Forum</a>
+<span class="breadcrumb-separator">→</span>
+<span class="breadcrumb-item current">{{ category.name }}</span>
+{% endblock %}
+
+{% block content %}
+<div class="category-page">
+    <div class="category-header">
+        <div class="category-title-section">
+            <div class="category-icon large" style="background-color: {{ category.color }}">
+                {% if category.icon %}
+                <span class="icon">{{ category.icon }}</span>
+                {% else %}
+                <span class="icon">📁</span>
+                {% endif %}
+            </div>
+            <div class="category-info">
+                <h1 class="category-name">{{ category.name }}</h1>
+                <p class="category-description">{{ category.description }}</p>
+                <div class="category-meta">
+                    <span class="meta-item">{{ category.topics_count }} topics</span>
+                    <span class="meta-item">{{ category.posts_count }} posts</span>
+                </div>
+            </div>
+        </div>
+        <div class="category-actions">
+            <a href="/forum/create?category={{ category.id }}" class="btn btn-primary">
+                <span class="icon">➕</span>
+                <span class="text">New Topic</span>
+            </a>
+        </div>
+    </div>
+
+    <div class="topics-section">
+        <div class="topics-header">
+            <h2>Topics</h2>
+            <div class="topics-controls">
+                <select class="sort-select" onchange="sortTopics(this.value)">
+                    <option value="recent">Most Recent</option>
+                    <option value="popular">Most Popular</option>
+                    <option value="solved">Solved</option>
+                    <option value="unsolved">Unsolved</option>
+                </select>
+            </div>
+        </div>
+
+        {% if topics.is_empty() %}
+        <div class="empty-state">
+            <div class="empty-icon">💭</div>
+            <h3>No topics yet</h3>
+            <p>Be the first to start a discussion in this category!</p>
+            <a href="/forum/create?category={{ category.id }}" class="btn btn-primary">Create Topic</a>
+        </div>
+        {% else %}
+        <div class="topics-list">
+            {% for topic_detail in topics %}
+            <div class="topic-item {{ 'pinned' if topic_detail.topic.is_pinned else '' }} {{ 'locked' if topic_detail.topic.is_locked else '' }} {{ 'solved' if topic_detail.topic.is_solved else '' }}">
+                <div class="topic-status">
+                    {% if topic_detail.topic.is_pinned %}
+                    <span class="status-badge pinned" title="Pinned">📌</span>
+                    {% endif %}
+                    {% if topic_detail.topic.is_locked %}
+                    <span class="status-badge locked" title="Locked">🔒</span>
+                    {% endif %}
+                    {% if topic_detail.topic.is_solved %}
+                    <span class="status-badge solved" title="Solved">✅</span>
+                    {% endif %}
+                </div>
+
+                <div class="topic-content">
+                    <h3 class="topic-title">
+                        <a href="/forum/t/{{ topic_detail.topic.slug }}">{{ topic_detail.topic.title }}</a>
+                    </h3>
+                    <div class="topic-meta">
+                        <span class="topic-author">
+                            <img src="/static/default-avatar.png" alt="{{ topic_detail.user.username }}" class="avatar-small">
+                            {{ topic_detail.user.username }}
+                        </span>
+                        <span class="topic-created">{{ topic_detail.topic.created_at.format("%b %d, %Y") }}</span>
+                        {% if topic_detail.topic.last_reply_at %}
+                        <span class="topic-last-reply">Last reply {{ topic_detail.topic.last_reply_at.format("%b %d") }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="topic-stats">
+                    <div class="stat-item">
+                        <span class="stat-number">{{ topic_detail.topic.replies_count }}</span>
+                        <span class="stat-label">replies</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">{{ topic_detail.topic.views }}</span>
+                        <span class="stat-label">views</span>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="pagination">
+            {% if current_page > 1 %}
+            <a href="/forum/c/{{ category.id }}?page={{ current_page - 1 }}" class="pagination-btn">← Previous</a>
+            {% endif %}
+
+            <span class="pagination-info">Page {{ current_page }}</span>
+
+            {% if has_next %}
+            <a href="/forum/c/{{ category.id }}?page={{ current_page + 1 }}" class="pagination-btn">Next →</a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function sortTopics(sortBy) {
+    const url = new URL(window.location);
+    url.searchParams.set('sort', sortBy);
+    url.searchParams.delete('page'); // Reset to first page
+    window.location.href = url.toString();
+}
+</script>
+{% endblock %}

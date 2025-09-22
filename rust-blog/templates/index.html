@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Rust Blog{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <h1 class="hero-title">Welcome to Rust Community</h1>
+    <p class="hero-subtitle">A modern blog and forum built with Rust, Axum, and PostgreSQL</p>
+    <div class="hero-actions">
+        <a href="/forum" class="btn btn-primary">Join the Forum</a>
+        <a href="/posts" class="btn btn-secondary">Read Blog Posts</a>
+    </div>
+</section>
+
+<section class="posts-section">
+    <h2 class="section-title">Latest Posts</h2>
+
+    {% if posts.is_empty() %}
+    <div class="empty-state">
+        <p>No posts published yet. <a href="/admin" class="link">Create your first post!</a></p>
+    </div>
+    {% else %}
+    <div class="posts-grid">
+        {% for post in posts %}
+        <article class="post-card">
+            <h3 class="post-title">
+                <a href="/posts/{{ post.id }}" class="post-link">{{ post.title }}</a>
+            </h3>
+            <div class="post-meta">
+                <span class="post-author">By {{ post.author }}</span>
+                <span class="post-date">{{ post.created_at.format("%B %d, %Y") }}</span>
+            </div>
+            {% if post.summary %}
+            <p class="post-summary">{{ post.summary }}</p>
+            {% endif %}
+            {% if !post.tags.is_empty() %}
+            <div class="post-tags">
+                {% for tag in post.tags %}
+                <span class="tag">{{ tag }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </article>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="cta">
+        <a href="/posts" class="btn btn-primary">View All Posts</a>
+    </div>
+</section>
+{% endblock %}

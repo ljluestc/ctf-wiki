@@ -1,0 +1,132 @@
+{% extends "forum/base.html" %}
+
+{% block title %}Forum - Rust Discussion{% endblock %}
+
+{% block breadcrumb %}
+<span class="breadcrumb-item current">Forum</span>
+{% endblock %}
+
+{% block content %}
+<div class="forum-index">
+    <div class="forum-header-section">
+        <h1 class="forum-title">Welcome to Rust Forum</h1>
+        <p class="forum-subtitle">Join the discussion about Rust programming, web development, and more</p>
+
+        <div class="forum-stats">
+            <div class="stat-item">
+                <span class="stat-number">{{ categories|length }}</span>
+                <span class="stat-label">Categories</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-number">{{ categories|map(attribute="category.topics_count")|sum }}</span>
+                <span class="stat-label">Topics</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-number">{{ categories|map(attribute="category.posts_count")|sum }}</span>
+                <span class="stat-label">Posts</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="categories-grid">
+        {% for category_with_stats in categories %}
+        <div class="category-card" data-category-id="{{ category_with_stats.category.id }}">
+            <a href="/forum/c/{{ category_with_stats.category.id }}" class="category-link">
+                <div class="category-header">
+                    <div class="category-icon" style="background-color: {{ category_with_stats.category.color }}">
+                        {% if category_with_stats.category.icon %}
+                        <span class="icon">{{ category_with_stats.category.icon }}</span>
+                        {% else %}
+                        <span class="icon">📁</span>
+                        {% endif %}
+                    </div>
+                    <div class="category-info">
+                        <h3 class="category-name">{{ category_with_stats.category.name }}</h3>
+                        <p class="category-description">{{ category_with_stats.category.description }}</p>
+                    </div>
+                </div>
+
+                <div class="category-stats">
+                    <div class="stat">
+                        <span class="stat-number">{{ category_with_stats.category.topics_count }}</span>
+                        <span class="stat-label">topics</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-number">{{ category_with_stats.category.posts_count }}</span>
+                        <span class="stat-label">posts</span>
+                    </div>
+                </div>
+
+                {% if category_with_stats.latest_topic %}
+                <div class="category-latest">
+                    <div class="latest-topic">
+                        <span class="latest-title">{{ category_with_stats.latest_topic.topic.title|truncate(40) }}</span>
+                        <div class="latest-meta">
+                            <span class="latest-author">by {{ category_with_stats.latest_topic.user.username }}</span>
+                            <span class="latest-time">{{ category_with_stats.latest_topic.topic.created_at.format("%b %d") }}</span>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if categories.is_empty() %}
+    <div class="empty-state">
+        <div class="empty-icon">📂</div>
+        <h3>No categories yet</h3>
+        <p>Be the first to start a discussion!</p>
+        <a href="/forum/create" class="btn btn-primary">Create First Topic</a>
+    </div>
+    {% endif %}
+</div>
+
+<div class="forum-sidebar">
+    <div class="sidebar-section">
+        <h3>Quick Actions</h3>
+        <div class="quick-actions">
+            <a href="/forum/create" class="action-btn primary">
+                <span class="icon">➕</span>
+                <span class="text">New Topic</span>
+            </a>
+            <a href="/forum/search" class="action-btn">
+                <span class="icon">🔍</span>
+                <span class="text">Search</span>
+            </a>
+            <a href="/forum/recent" class="action-btn">
+                <span class="icon">🕒</span>
+                <span class="text">Recent Posts</span>
+            </a>
+        </div>
+    </div>
+
+    <div class="sidebar-section">
+        <h3>Community Guidelines</h3>
+        <div class="guidelines-preview">
+            <p>Please be respectful and constructive in your discussions.</p>
+            <a href="/forum/guidelines" class="read-more">Read full guidelines →</a>
+        </div>
+    </div>
+</div>
+
+<style>
+.forum-index {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+@media (max-width: 1024px) {
+    .forum-index {
+        grid-template-columns: 1fr;
+    }
+
+    .forum-sidebar {
+        order: -1;
+    }
+}
+</style>
+{% endblock %}

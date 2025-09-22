@@ -1,0 +1,390 @@
+{% extends "forum/base.html" %}
+
+{% block title %}Create New Topic - Forum{% endblock %}
+
+{% block breadcrumb %}
+<a href="/forum" class="breadcrumb-item">Forum</a>
+<span class="breadcrumb-separator">→</span>
+<span class="breadcrumb-item current">Create Topic</span>
+{% endblock %}
+
+{% block content %}
+<div class="create-topic-page">
+    <div class="page-header">
+        <h1>Create New Topic</h1>
+        <p>Start a new discussion in the community</p>
+    </div>
+
+    <form class="create-topic-form" onsubmit="submitTopic(event)">
+        <div class="form-section">
+            <div class="form-group">
+                <label for="category">Category *</label>
+                <select id="category" name="category_id" required>
+                    <option value="">Select a category...</option>
+                    {% for category_with_stats in categories %}
+                    <option value="{{ category_with_stats.category.id }}"
+                            {% if selected_category == category_with_stats.category.id %}selected{% endif %}>
+                        {% if category_with_stats.category.icon %}{{ category_with_stats.category.icon }}{% endif %} {{ category_with_stats.category.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+                <small class="form-help">Choose the most appropriate category for your topic</small>
+            </div>
+
+            <div class="form-group">
+                <label for="title">Title *</label>
+                <input type="text" id="title" name="title" placeholder="Enter a descriptive title for your topic" required maxlength="255">
+                <small class="form-help">Be specific and descriptive to help others understand your topic</small>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <div class="form-group">
+                <label for="content">Content *</label>
+                <div class="editor-toolbar">
+                    <button type="button" class="toolbar-btn" onclick="insertMarkdown('**', '**')" title="Bold">
+                        <strong>B</strong>
+                    </button>
+                    <button type="button" class="toolbar-btn" onclick="insertMarkdown('*', '*')" title="Italic">
+                        <em>I</em>
+                    </button>
+                    <button type="button" class="toolbar-btn" onclick="insertMarkdown('`', '`')" title="Code">
+                        <code>&lt;/&gt;</code>
+                    </button>
+                    <button type="button" class="toolbar-btn" onclick="insertMarkdown('```rust\n', '\n```')" title="Code Block">
+                        { }
+                    </button>
+                    <button type="button" class="toolbar-btn" onclick="insertMarkdown('[', '](url)')" title="Link">
+                        🔗
+                    </button>
+                    <button type="button" class="toolbar-btn" onclick="insertMarkdown('> ', '')" title="Quote">
+                        💬
+                    </button>
+                </div>
+                <textarea
+                    id="content"
+                    name="content"
+                    placeholder="Describe your topic in detail. You can use Markdown for formatting.
+
+Examples:
+- **Bold text**
+- *Italic text*
+- `inline code`
+- ```rust
+  fn main() {
+      println!('Hello, world!');
+  }
+  ```
+- [Link text](https://example.com)
+- > Quote text"
+                    rows="15"
+                    required
+                ></textarea>
+                <small class="form-help">
+                    You can use <a href="/forum/markdown-help" target="_blank">Markdown</a> for formatting.
+                    Include code examples, error messages, or any relevant details.
+                </small>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <div class="form-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="subscribe" name="subscribe" checked>
+                    <span class="checkmark"></span>
+                    Subscribe to email notifications for replies
+                </label>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <div class="form-actions-left">
+                <button type="button" class="btn btn-secondary" onclick="previewTopic()">
+                    <span class="icon">👁️</span>
+                    <span class="text">Preview</span>
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="saveDraft()">
+                    <span class="icon">💾</span>
+                    <span class="text">Save Draft</span>
+                </button>
+            </div>
+            <div class="form-actions-right">
+                <a href="/forum" class="btn btn-outline">Cancel</a>
+                <button type="submit" class="btn btn-primary">
+                    <span class="icon">📝</span>
+                    <span class="text">Create Topic</span>
+                </button>
+            </div>
+        </div>
+    </form>
+
+    <div class="form-sidebar">
+        <div class="sidebar-section">
+            <h3>Tips for a Great Topic</h3>
+            <ul class="tips-list">
+                <li>
+                    <strong>Be specific</strong> - Include relevant details, error messages, and code snippets
+                </li>
+                <li>
+                    <strong>Search first</strong> - Check if your question has already been answered
+                </li>
+                <li>
+                    <strong>Use proper formatting</strong> - Format code blocks and use clear headings
+                </li>
+                <li>
+                    <strong>Be respectful</strong> - Follow our community guidelines
+                </li>
+            </ul>
+        </div>
+
+        <div class="sidebar-section">
+            <h3>Markdown Quick Reference</h3>
+            <div class="markdown-help">
+                <code>**bold**</code> → <strong>bold</strong><br>
+                <code>*italic*</code> → <em>italic</em><br>
+                <code>`code`</code> → <code>code</code><br>
+                <code>```rust</code> → code block<br>
+                <code>[text](url)</code> → link<br>
+                <code>## Heading</code> → heading
+            </div>
+            <a href="/forum/markdown-help" target="_blank" class="help-link">Full Markdown Guide →</a>
+        </div>
+    </div>
+</div>
+
+<div id="previewModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Topic Preview</h3>
+            <button class="modal-close" onclick="closePreview()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div id="previewContent"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closePreview()">Close</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// Load draft on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadDraft();
+});
+
+function insertMarkdown(before, after) {
+    const textarea = document.getElementById('content');
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = textarea.value;
+    const selectedText = text.substring(start, end);
+
+    const replacement = before + selectedText + after;
+    textarea.value = text.substring(0, start) + replacement + text.substring(end);
+
+    // Set cursor position
+    const newCursorPos = start + before.length + selectedText.length;
+    textarea.setSelectionRange(newCursorPos, newCursorPos);
+    textarea.focus();
+}
+
+async function submitTopic(event) {
+    event.preventDefault();
+
+    const formData = new FormData(event.target);
+    const topicData = {
+        category_id: formData.get('category_id'),
+        title: formData.get('title'),
+        content: formData.get('content')
+    };
+
+    try {
+        const response = await fetch('/api/forum/topics', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + localStorage.getItem('token')
+            },
+            body: JSON.stringify(topicData)
+        });
+
+        if (response.ok) {
+            const topic = await response.json();
+            // Clear draft
+            localStorage.removeItem('topicDraft');
+            // Redirect to the new topic
+            window.location.href = `/forum/t/${topic.slug}`;
+        } else {
+            const error = await response.text();
+            alert(`Failed to create topic: ${error}`);
+        }
+    } catch (error) {
+        console.error('Error creating topic:', error);
+        alert('Failed to create topic. Please try again.');
+    }
+}
+
+function saveDraft() {
+    const formData = {
+        category_id: document.getElementById('category').value,
+        title: document.getElementById('title').value,
+        content: document.getElementById('content').value,
+        timestamp: new Date().toISOString()
+    };
+
+    localStorage.setItem('topicDraft', JSON.stringify(formData));
+
+    // Show feedback
+    const btn = event.target;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<span class="icon">✅</span><span class="text">Saved!</span>';
+    setTimeout(() => {
+        btn.innerHTML = originalText;
+    }, 2000);
+}
+
+function loadDraft() {
+    const draft = localStorage.getItem('topicDraft');
+    if (draft) {
+        try {
+            const data = JSON.parse(draft);
+            const timeDiff = new Date() - new Date(data.timestamp);
+
+            // Only load draft if it's less than 24 hours old
+            if (timeDiff < 24 * 60 * 60 * 1000) {
+                if (confirm('You have a saved draft. Would you like to restore it?')) {
+                    document.getElementById('category').value = data.category_id || '';
+                    document.getElementById('title').value = data.title || '';
+                    document.getElementById('content').value = data.content || '';
+                }
+            } else {
+                // Remove old draft
+                localStorage.removeItem('topicDraft');
+            }
+        } catch (error) {
+            console.error('Error loading draft:', error);
+        }
+    }
+}
+
+function previewTopic() {
+    const title = document.getElementById('title').value;
+    const content = document.getElementById('content').value;
+
+    if (!title || !content) {
+        alert('Please fill in both title and content to preview.');
+        return;
+    }
+
+    // Simple markdown preview (in a real app, you'd use a proper markdown parser)
+    const previewHtml = `
+        <h1>${escapeHtml(title)}</h1>
+        <div class="content">${simpleMarkdownToHtml(content)}</div>
+    `;
+
+    document.getElementById('previewContent').innerHTML = previewHtml;
+    document.getElementById('previewModal').style.display = 'block';
+}
+
+function closePreview() {
+    document.getElementById('previewModal').style.display = 'none';
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function simpleMarkdownToHtml(text) {
+    return escapeHtml(text)
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        .replace(/`(.*?)`/g, '<code>$1</code>')
+        .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+        .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+        .replace(/^# (.*$)/gim, '<h1>$1</h1>')
+        .replace(/\n/g, '<br>');
+}
+
+// Auto-save draft every 30 seconds
+setInterval(() => {
+    const title = document.getElementById('title').value;
+    const content = document.getElementById('content').value;
+
+    if (title || content) {
+        saveDraft();
+    }
+}, 30000);
+</script>
+
+<style>
+.create-topic-page {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+@media (max-width: 1024px) {
+    .create-topic-page {
+        grid-template-columns: 1fr;
+    }
+
+    .form-sidebar {
+        order: -1;
+    }
+}
+
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 800px;
+    max-height: 80%;
+    overflow: hidden;
+}
+
+.modal-header {
+    padding: 1rem;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-body {
+    padding: 1rem;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.modal-footer {
+    padding: 1rem;
+    border-top: 1px solid #eee;
+    text-align: right;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+}
+</style>
+{% endblock %}

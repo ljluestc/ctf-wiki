@@ -1,0 +1,253 @@
+{% extends "forum/base.html" %}
+
+{% block title %}{{ topic.topic.title }} - {{ topic.category.name }}{% endblock %}
+
+{% block breadcrumb %}
+<a href="/forum" class="breadcrumb-item">Forum</a>
+<span class="breadcrumb-separator">→</span>
+<a href="/forum/c/{{ topic.category.id }}" class="breadcrumb-item">{{ topic.category.name }}</a>
+<span class="breadcrumb-separator">→</span>
+<span class="breadcrumb-item current">{{ topic.topic.title|truncate(30) }}</span>
+{% endblock %}
+
+{% block content %}
+<div class="topic-page">
+    <div class="topic-header">
+        <div class="topic-title-section">
+            <div class="topic-status-badges">
+                {% if topic.topic.is_pinned %}
+                <span class="status-badge pinned">📌 Pinned</span>
+                {% endif %}
+                {% if topic.topic.is_locked %}
+                <span class="status-badge locked">🔒 Locked</span>
+                {% endif %}
+                {% if topic.topic.is_solved %}
+                <span class="status-badge solved">✅ Solved</span>
+                {% endif %}
+            </div>
+            <h1 class="topic-title">{{ topic.topic.title }}</h1>
+            <div class="topic-meta">
+                <div class="topic-category">
+                    <a href="/forum/c/{{ topic.category.id }}" class="category-link" style="color: {{ topic.category.color }}">
+                        {% if topic.category.icon %}{{ topic.category.icon }}{% endif %} {{ topic.category.name }}
+                    </a>
+                </div>
+                <div class="topic-stats-inline">
+                    <span class="stat">{{ topic.topic.replies_count }} replies</span>
+                    <span class="stat">{{ topic.topic.views }} views</span>
+                    <span class="stat">Created {{ topic.topic.created_at.format("%b %d, %Y") }}</span>
+                </div>
+            </div>
+        </div>
+        <div class="topic-actions">
+            {% if not topic.topic.is_locked %}
+            <button class="btn btn-primary" onclick="scrollToReplyForm()">
+                <span class="icon">💬</span>
+                <span class="text">Reply</span>
+            </button>
+            {% endif %}
+            <button class="btn btn-secondary" onclick="shareTopic()">
+                <span class="icon">🔗</span>
+                <span class="text">Share</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="replies-section">
+        {% if replies.is_empty() %}
+        <div class="empty-replies">
+            <p>No replies yet. Be the first to respond!</p>
+        </div>
+        {% else %}
+        <div class="replies-list">
+            {% for reply_detail in replies %}
+            <div class="reply-item {{ 'solution' if reply_detail.reply.is_solution else '' }}" id="reply-{{ reply_detail.reply.id }}">
+                <div class="reply-sidebar">
+                    <div class="user-info">
+                        <img src="/static/default-avatar.png" alt="{{ reply_detail.user.username }}" class="user-avatar">
+                        <div class="user-details">
+                            <a href="/forum/u/{{ reply_detail.user.username }}" class="username">{{ reply_detail.user.username }}</a>
+                            <span class="user-role">{{ reply_detail.user.role|title }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="reply-content">
+                    {% if reply_detail.reply.is_solution %}
+                    <div class="solution-banner">
+                        <span class="solution-icon">✅</span>
+                        <span class="solution-text">Accepted Solution</span>
+                    </div>
+                    {% endif %}
+
+                    <div class="reply-body">
+                        {{ reply_detail.reply.content|safe }}
+                    </div>
+
+                    <div class="reply-footer">
+                        <div class="reply-meta">
+                            <span class="reply-time">{{ reply_detail.reply.created_at.format("%b %d, %Y at %I:%M %p") }}</span>
+                            {% if reply_detail.reply.updated_at != reply_detail.reply.created_at %}
+                            <span class="reply-edited">(edited {{ reply_detail.reply.updated_at.format("%b %d") }})</span>
+                            {% endif %}
+                        </div>
+                        <div class="reply-actions">
+                            <button class="reply-action like-btn" onclick="toggleLike('{{ reply_detail.reply.id }}')">
+                                <span class="icon">👍</span>
+                                <span class="count">{{ reply_detail.reply.likes_count }}</span>
+                            </button>
+                            <button class="reply-action" onclick="replyTo('{{ reply_detail.reply.id }}', '{{ reply_detail.user.username }}')">
+                                <span class="icon">💬</span>
+                                <span class="text">Reply</span>
+                            </button>
+                            <button class="reply-action" onclick="shareReply('{{ reply_detail.reply.id }}')">
+                                <span class="icon">🔗</span>
+                                <span class="text">Share</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="pagination">
+            {% if current_page > 1 %}
+            <a href="/forum/t/{{ topic.topic.slug }}?page={{ current_page - 1 }}" class="pagination-btn">← Previous</a>
+            {% endif %}
+
+            <span class="pagination-info">Page {{ current_page }}</span>
+
+            {% if has_next %}
+            <a href="/forum/t/{{ topic.topic.slug }}?page={{ current_page + 1 }}" class="pagination-btn">Next →</a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+    {% if not topic.topic.is_locked %}
+    <div class="reply-form-section" id="replyFormSection">
+        <h3>Post a Reply</h3>
+        <form class="reply-form" onsubmit="submitReply(event)">
+            <div class="form-group">
+                <div id="replyingTo" class="replying-to" style="display: none;">
+                    <span class="replying-text">Replying to <strong id="replyingToUser"></strong></span>
+                    <button type="button" class="cancel-reply" onclick="cancelReply()">×</button>
+                </div>
+                <textarea
+                    id="replyContent"
+                    name="content"
+                    placeholder="Write your reply..."
+                    rows="6"
+                    required
+                ></textarea>
+            </div>
+            <div class="form-actions">
+                <div class="form-help">
+                    <span class="help-text">You can use <a href="/forum/markdown-help" target="_blank">Markdown</a> for formatting</span>
+                </div>
+                <div class="form-buttons">
+                    <button type="button" class="btn btn-secondary" onclick="previewReply()">Preview</button>
+                    <button type="submit" class="btn btn-primary">Post Reply</button>
+                </div>
+            </div>
+        </form>
+    </div>
+    {% else %}
+    <div class="locked-notice">
+        <span class="lock-icon">🔒</span>
+        <span class="lock-text">This topic is locked. No new replies can be posted.</span>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+let replyingToId = null;
+
+function scrollToReplyForm() {
+    document.getElementById('replyFormSection').scrollIntoView({ behavior: 'smooth' });
+    document.getElementById('replyContent').focus();
+}
+
+function replyTo(replyId, username) {
+    replyingToId = replyId;
+    document.getElementById('replyingTo').style.display = 'block';
+    document.getElementById('replyingToUser').textContent = username;
+    scrollToReplyForm();
+}
+
+function cancelReply() {
+    replyingToId = null;
+    document.getElementById('replyingTo').style.display = 'none';
+}
+
+async function submitReply(event) {
+    event.preventDefault();
+
+    const content = document.getElementById('replyContent').value;
+    if (!content.trim()) return;
+
+    const replyData = {
+        content: content,
+        reply_to_id: replyingToId
+    };
+
+    try {
+        const response = await fetch(`/api/forum/topics/{{ topic.topic.id }}/replies`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + localStorage.getItem('token')
+            },
+            body: JSON.stringify(replyData)
+        });
+
+        if (response.ok) {
+            window.location.reload();
+        } else {
+            alert('Failed to post reply. Please try again.');
+        }
+    } catch (error) {
+        console.error('Error posting reply:', error);
+        alert('Failed to post reply. Please try again.');
+    }
+}
+
+async function toggleLike(replyId) {
+    try {
+        const response = await fetch(`/api/forum/replies/${replyId}/like`, {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + localStorage.getItem('token')
+            }
+        });
+
+        if (response.ok) {
+            // Update like count in UI
+            window.location.reload();
+        }
+    } catch (error) {
+        console.error('Error toggling like:', error);
+    }
+}
+
+function shareReply(replyId) {
+    const url = `${window.location.origin}${window.location.pathname}#reply-${replyId}`;
+    navigator.clipboard.writeText(url).then(() => {
+        alert('Reply link copied to clipboard!');
+    });
+}
+
+function shareTopic() {
+    navigator.clipboard.writeText(window.location.href).then(() => {
+        alert('Topic link copied to clipboard!');
+    });
+}
+
+function previewReply() {
+    const content = document.getElementById('replyContent').value;
+    // TODO: Implement preview functionality
+    alert('Preview functionality coming soon!');
+}
+</script>
+{% endblock %}

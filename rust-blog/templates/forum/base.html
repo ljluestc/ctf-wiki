@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Forum{% endblock %}</title>
+    <link rel="stylesheet" href="/static/forum.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet">
+</head>
+<body class="forum-body">
+    <header class="forum-header">
+        <div class="container">
+            <nav class="forum-nav">
+                <div class="nav-left">
+                    <a href="/forum" class="forum-logo">
+                        <span class="logo-icon">🦀</span>
+                        <span class="logo-text">Rust Forum</span>
+                    </a>
+                    <div class="nav-breadcrumb">
+                        {% block breadcrumb %}{% endblock %}
+                    </div>
+                </div>
+                <div class="nav-right">
+                    <a href="/forum/search" class="nav-action" title="Search">
+                        <span class="icon">🔍</span>
+                    </a>
+                    <a href="/forum/create" class="nav-action btn-primary" title="Create Topic">
+                        <span class="icon">➕</span>
+                        <span class="text">New Topic</span>
+                    </a>
+                    <div class="user-menu">
+                        <button class="user-avatar" onclick="toggleUserMenu()">
+                            <img src="/static/default-avatar.png" alt="User" width="32" height="32">
+                        </button>
+                        <div class="user-dropdown" id="userDropdown">
+                            <a href="/profile">Profile</a>
+                            <a href="/settings">Settings</a>
+                            <a href="/logout">Logout</a>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main class="forum-main">
+        <div class="container">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <footer class="forum-footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>Community</h4>
+                    <a href="/forum/guidelines">Guidelines</a>
+                    <a href="/forum/faq">FAQ</a>
+                    <a href="/forum/rules">Rules</a>
+                </div>
+                <div class="footer-section">
+                    <h4>Support</h4>
+                    <a href="/contact">Contact</a>
+                    <a href="/feedback">Feedback</a>
+                    <a href="/bugs">Report Bug</a>
+                </div>
+                <div class="footer-section">
+                    <h4>Legal</h4>
+                    <a href="/privacy">Privacy Policy</a>
+                    <a href="/terms">Terms of Service</a>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 Rust Forum. Powered by Rust and Axum.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="/static/forum.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-rust.min.js"></script>
+</body>
+</html>
